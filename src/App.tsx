@@ -26,6 +26,31 @@ interface AnalysisResult {
   eligibilityReason?: string;
 }
 
+// Custom CSS for the Bolt.new badge
+const badgeStyles = `
+  .bolt-badge {
+    transition: all 0.3s ease;
+  }
+  @keyframes badgeIntro {
+    0% { transform: rotateY(-90deg); opacity: 0; }
+    100% { transform: rotateY(0deg); opacity: 1; }
+  }
+  .bolt-badge-intro {
+    animation: badgeIntro 0.8s ease-out 1s both;
+  }
+  .bolt-badge-intro.animated {
+    animation: none;
+  }
+  @keyframes badgeHover {
+    0% { transform: scale(1) rotate(0deg); }
+    50% { transform: scale(1.1) rotate(22deg); }
+    100% { transform: scale(1) rotate(0deg); }
+  }
+  .bolt-badge:hover {
+    animation: badgeHover 0.6s ease-in-out;
+  }
+`;
+
 function App() {
   const [repoUrl, setRepoUrl] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -76,6 +101,20 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-200 dark:bg-gray-900 text-black dark:text-white transition-colors duration-300">
+      {/* Inject Badge Styles */}
+      <style>{badgeStyles}</style>
+
+      {/* Custom Bolt.new Badge */}
+      <div className="fixed top-4 right-4 z-50">
+        <a href="https://bolt.new" target="_blank" rel="noopener noreferrer" 
+           className="block transition-all duration-300 hover:shadow-2xl">
+          <img src="https://storage.bolt.army/white_circle_360x360.png" 
+               alt="Built with Bolt.new badge" 
+               className="w-20 h-20 md:w-28 md:h-28 rounded-full shadow-lg bolt-badge bolt-badge-intro"
+               onAnimationEnd={(e) => e.currentTarget.classList.add('animated')} />
+        </a>
+      </div>
+
       {/* Header */}
       <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 transition-colors duration-300">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
