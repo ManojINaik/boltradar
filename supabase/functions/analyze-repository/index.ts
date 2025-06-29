@@ -126,7 +126,7 @@ async function fetchGitHubData(owner: string, repo: string, githubToken: string)
 function analyzeCommitPatterns(commits: GitHubCommit[]) {
   const verifiedCommits = commits.filter(commit => commit.commit.verification.verified).length;
   const totalCommits = commits.length;
-  const verificationPercentage = totalCommits > 0 ? Math.round((verifiedCommits / totalCommits) * 100) : 0;
+  const githubVerifiedPercentage = totalCommits > 0 ? Math.round((verifiedCommits / totalCommits) * 100) : 0;
 
   // Analyze rapid commits (commits within short time intervals)
   const commitTimes = commits.map(commit => new Date(commit.commit.author.date).getTime());
@@ -156,8 +156,8 @@ function analyzeCommitPatterns(commits: GitHubCommit[]) {
     filePatterns.push('Multiple rapid file changes');
   }
   
-  if (verificationPercentage > 70) {
-    filePatterns.push('High verification rate pattern');
+  if (githubVerifiedPercentage > 70) {
+    filePatterns.push('High GitHub verification rate pattern');
   }
 
   // Analyze time patterns
@@ -178,7 +178,7 @@ function analyzeCommitPatterns(commits: GitHubCommit[]) {
     timePatterns,
     verifiedCommits,
     totalCommits,
-    verificationPercentage
+    githubVerifiedPercentage
   };
 }
 
@@ -189,7 +189,7 @@ async function analyzeWithGemini(repoData: GitHubRepo, commits: GitHubCommit[], 
 
 {
   "summary": "A clear 2-3 sentence summary of your analysis",
-  "likelihood": 85,
+  "likelihood": 65,
   "keyFindings": [
     "Finding 1 about verification patterns",
     "Finding 2 about commit behavior", 
@@ -207,18 +207,20 @@ Repository Data:
 - Language: ${repoData.language || 'Unknown'}
 - Size: ${repoData.size} KB
 - Total commits: ${patterns.totalCommits}
-- Verified commits: ${patterns.verifiedCommits} (${patterns.verificationPercentage}%)
+- GitHub verified commits: ${patterns.verifiedCommits} (${patterns.githubVerifiedPercentage}%)
 - Rapid commits: ${patterns.rapidCommits}
 
 Recent commit messages:
 - ${commitMessages}
 
 Analysis Guidelines:
-- Verification rates >80% strongly suggest AI generation
+- Consider GitHub verification as ONE factor among many (cryptographic signing, not AI indicator)
 - Rapid commits (${patterns.rapidCommits}) indicate automated development
 - Look for patterns in commit messages and timing
 - Consider repository age and development velocity
-- Confidence should be "high" if verification >80%, "medium" if 60-80%, "low" if <60%
+- Look for generic commit messages, file creation patterns, and development velocity
+- Base likelihood on OVERALL analysis, not just GitHub verification
+- Confidence should reflect certainty of your analysis based on ALL factors
 
 Return ONLY the JSON object, no markdown formatting or additional text.`;
 
@@ -292,13 +294,13 @@ Return ONLY the JSON object, no markdown formatting or additional text.`;
 
       // Ensure likelihood is a number
       if (typeof parsedAnalysis.likelihood !== 'number') {
-        parsedAnalysis.likelihood = parseInt(String(parsedAnalysis.likelihood)) || patterns.verificationPercentage;
+        parsedAnalysis.likelihood = parseInt(String(parsedAnalysis.likelihood)) || Math.min(patterns.githubVerifiedPercentage + patterns.rapidCommits, 100);
       }
 
       // Validate confidence level
       if (!['high', 'medium', 'low'].includes(parsedAnalysis.confidence)) {
-        parsedAnalysis.confidence = patterns.verificationPercentage > 80 ? 'high' : 
-                                   patterns.verificationPercentage > 60 ? 'medium' : 'low';
+        parsedAnalysis.confidence = parsedAnalysis.likelihood > 80 ? 'high' : 
+                                   parsedAnalysis.likelihood > 60 ? 'medium' : 'low';
       }
 
       return parsedAnalysis;
@@ -314,38 +316,38 @@ Return ONLY the JSON object, no markdown formatting or additional text.`;
     
     // Return structured fallback analysis
     return {
-      summary: `Analysis based on ${patterns.totalCommits} commits with ${patterns.verificationPercentage}% verification rate. ${patterns.verificationPercentage > 80 ? 'High verification suggests AI generation.' : 'Verification patterns indicate mixed development approach.'}`,
-      likelihood: Math.min(patterns.verificationPercentage + (patterns.rapidCommits > 10 ? 15 : 0), 100),
+      summary: `Analysis based on ${patterns.totalCommits} commits with ${patterns.githubVerifiedPercentage}% GitHub verification rate. Rapid commits: ${patterns.rapidCommits}. Development patterns suggest ${patterns.rapidCommits > 10 ? 'automated' : 'manual'} code generation.`,
+      likelihood: Math.min(patterns.githubVerifiedPercentage * 0.3 + patterns.rapidCommits * 2 + (patterns.totalCommits > 50 ? 10 : 0), 100),
       keyFindings: [
-        `Verification rate: ${patterns.verificationPercentage}% (${patterns.verifiedCommits}/${patterns.totalCommits} commits)`,
+        `GitHub verification rate: ${patterns.githubVerifiedPercentage}% (${patterns.verifiedCommits}/${patterns.totalCommits} commits)`,
         `Rapid commit sequences: ${patterns.rapidCommits} detected`,
-        patterns.verificationPercentage > 80 ? 'High verification rate indicates AI-assisted development' : 'Verification patterns suggest human development',
+        patterns.rapidCommits > 10 ? 'High automation suggests AI-assisted development' : 'Development patterns suggest human involvement',
         `Repository created: ${new Date(repoData.created_at).toDateString()}`
       ],
       recommendations: [
-        patterns.verificationPercentage > 80 ? 'Manual code review recommended for hackathon compliance' : 'Verification patterns appear normal',
+        patterns.rapidCommits > 10 ? 'Manual code review recommended for hackathon compliance' : 'Development patterns appear normal',
         'Consider reviewing commit history for development timeline',
         'Validate that primary development occurred within hackathon timeframe'
       ],
-      confidence: patterns.verificationPercentage > 80 ? 'high' : patterns.verificationPercentage > 60 ? 'medium' : 'low'
+      confidence: patterns.rapidCommits > 15 ? 'high' : patterns.rapidCommits > 7 ? 'medium' : 'low'
     };
   }
 }
 
 function checkHackathonEligibility(repoData: GitHubRepo) {
   const createdDate = new Date(repoData.created_at);
-  const hackathonStartDate = new Date('2024-12-01T00:00:00.000Z'); // December 1, 2024
+  const hackathonEndDate = new Date('2025-05-30T00:00:00.000Z'); // May 30, 2025
   
-  if (createdDate < hackathonStartDate) {
+  if (createdDate >= hackathonEndDate) {
     return {
       isEligible: false,
-      reason: `Repository created on ${createdDate.toDateString()}, before hackathon submission period (December 1, 2024)`
+      reason: `Repository created on ${createdDate.toDateString()}, after hackathon deadline (May 30, 2025)`
     };
   }
   
   return {
     isEligible: true,
-    reason: 'Repository meets hackathon timeline requirements'
+    reason: `Repository created on ${createdDate.toDateString()}, within hackathon period (before May 30, 2025)`
   };
 }
 
@@ -403,22 +405,23 @@ Deno.serve(async (req) => {
     // Get AI analysis
     const aiAnalysis = await analyzeWithGemini(repoData, commits, patterns, geminiApiKey);
 
-    // Determine if likely AI generated
-    const isLikelyAIGenerated = patterns.verificationPercentage > 80 || patterns.rapidCommits > 15;
+    // Determine if likely AI generated based on AI analysis
+    const isLikelyAIGenerated = aiAnalysis.likelihood > 70;
 
-    // Determine confidence level
+    // Use AI analysis confidence
     let confidence: 'low' | 'medium' | 'high' = 'low';
-    if (patterns.verificationPercentage > 80 || patterns.rapidCommits > 20) {
+    if (aiAnalysis.likelihood > 80) {
       confidence = 'high';
-    } else if (patterns.verificationPercentage > 60 || patterns.rapidCommits > 10) {
+    } else if (aiAnalysis.likelihood > 60) {
       confidence = 'medium';
     }
 
     // Build analysis details
     const details = [
       `Repository analyzed: ${patterns.totalCommits} total commits`,
-      `Verified commits: ${patterns.verifiedCommits} (${patterns.verificationPercentage}%)`,
+      `GitHub verified commits: ${patterns.verifiedCommits} (${patterns.githubVerifiedPercentage}%)`,
       `Rapid commit sequences: ${patterns.rapidCommits}`,
+      `AI likelihood assessment: ${aiAnalysis.likelihood}%`,
       `Repository created: ${new Date(repoData.created_at).toDateString()}`,
       eligibility.reason
     ];
@@ -429,11 +432,11 @@ Deno.serve(async (req) => {
 
     const result: AnalysisResult = {
       repoUrl,
-      verificationPercentage: patterns.verificationPercentage,
+      verificationPercentage: aiAnalysis.likelihood,
       isLikelyAIGenerated,
       isEligible: eligibility.isEligible,
       commitPatterns: patterns,
-      confidence,
+      confidence: aiAnalysis.confidence,
       details,
       aiAnalysis,
       eligibilityReason: eligibility.reason

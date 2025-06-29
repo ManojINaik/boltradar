@@ -255,7 +255,7 @@ function App() {
               </div>
 
               {/* High Verification Alert */}
-              {result.verificationPercentage > 80 && (
+              {result.aiAnalysis && result.aiAnalysis.likelihood > 80 && (
                 <div className="bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-500/30 rounded-2xl p-6 mb-6 transition-colors duration-300">
                   <div className="flex items-start space-x-4">
                     <div className="p-2 bg-orange-100 dark:bg-orange-500/20 rounded-xl transition-colors duration-300">
@@ -264,8 +264,8 @@ function App() {
                     <div>
                       <h4 className="font-medium text-orange-800 dark:text-orange-400 mb-2 transition-colors duration-300">High Verification Alert</h4>
                       <p className="text-orange-600 dark:text-orange-300 text-sm font-light transition-colors duration-300">
-                        This repository shows a verification rate above 80%, which strongly indicates AI-assisted development.
-                        Human developers typically show more varied commit patterns and lower overall verification rates.
+                        This repository shows an AI likelihood above 80%, which strongly indicates AI-assisted development.
+                        Human developers typically show more varied development patterns and different commit behaviors.
                       </p>
                     </div>
                   </div>
@@ -317,10 +317,10 @@ function App() {
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 border border-gray-200 dark:border-gray-700 shadow-sm transition-colors duration-300">
                 <h4 className="text-xl font-medium mb-6 text-gray-900 dark:text-white transition-colors duration-300">Analysis Report</h4>
                 
-                {result.verificationPercentage > 80 && (
+                {result.aiAnalysis && result.aiAnalysis.likelihood > 80 && (
                   <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded-xl px-4 py-3 mb-6 transition-colors duration-300">
                     <div className="text-red-600 dark:text-red-400 font-medium text-sm transition-colors duration-300">AUTOMATIC DETECTION</div>
-                    <div className="text-red-500 dark:text-red-300 text-sm font-light transition-colors duration-300">High verification rate indicates AI generation</div>
+                    <div className="text-red-500 dark:text-red-300 text-sm font-light transition-colors duration-300">High AI likelihood indicates automated generation</div>
                   </div>
                 )}
                 
@@ -427,11 +427,11 @@ function App() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="flex items-center space-x-4">
                   <div className={`p-2 rounded-xl transition-colors duration-300 ${
-                    result.isEligible && result.verificationPercentage > 70 
+                    result.isEligible && result.aiAnalysis && result.aiAnalysis.likelihood > 70 
                       ? 'bg-green-100 dark:bg-green-500/20' 
                       : 'bg-yellow-100 dark:bg-yellow-500/20'
                   }`}>
-                    {result.isEligible && result.verificationPercentage > 70 ? (
+                    {result.isEligible && result.aiAnalysis && result.aiAnalysis.likelihood > 70 ? (
                       <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors duration-300" />
                     ) : (
                       <AlertTriangle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 transition-colors duration-300" />
@@ -457,7 +457,7 @@ function App() {
               <p className="text-gray-600 dark:text-gray-300 text-sm font-light mt-4 transition-colors duration-300">
                 {!result.isEligible
                   ? "This repository is not eligible for the hackathon due to its creation date."
-                  : result.verificationPercentage > 70 
+                  : result.aiAnalysis && result.aiAnalysis.likelihood > 70 
                     ? "This project appears to meet the hackathon requirement of being primarily built with bolt.new."
                     : "This project may not fully meet the requirement of being primarily built with bolt.new. Manual review recommended."
                 }
