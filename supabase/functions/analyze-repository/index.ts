@@ -244,7 +244,7 @@ async function analyzeWithGemini(repoData: GitHubRepo, commits: GitHubCommit[], 
 
 {
   "summary": "A clear 2-3 sentence summary of your analysis",
-  "likelihood": 65,
+  "likelihood": [CALCULATE_BASED_ON_ANALYSIS],
   "keyFindings": [
     "Finding 1 about verification patterns",
     "Finding 2 about commit behavior", 
@@ -275,6 +275,10 @@ Analysis Guidelines:
 - Consider repository age and development velocity
 - Look for generic commit messages, file creation patterns, and development velocity
 - Base likelihood on OVERALL analysis, not just GitHub verification
+ - Calculate likelihood (0-100) based on ALL factors: rapid commits, generic messages, development patterns, timing anomalies
+ - Higher rapid commits (>15) suggest higher AI likelihood
+ - Generic commit messages like "Initial commit", "Update files" suggest AI generation
+ - Very fast development cycles with many files suggest AI assistance
 - Confidence should reflect certainty of your analysis based on ALL factors
 
 Return ONLY the JSON object, no markdown formatting or additional text.`;
