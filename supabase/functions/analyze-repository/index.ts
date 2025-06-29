@@ -63,6 +63,7 @@ interface AnalysisResult {
   verificationPercentage: number;
   isLikelyAIGenerated: boolean;
   isEligible: boolean;
+  hasBoltNewBadge: boolean;
   commitPatterns: {
     rapidCommits: number;
     filePatterns: string[];
@@ -80,6 +81,60 @@ interface AnalysisResult {
     confidence: string;
   };
   eligibilityReason?: string;
+}
+
+async function checkBoltNewBadge(owner: string, repo: string, githubToken: string): Promise<boolean> {
+  const headers = {
+    'Authorization': `Bearer ${githubToken}`,
+    'Accept': 'application/vnd.github.v3+json',
+    'User-Agent': 'Bolt-Detector/1.0'
+  };
+
+  try {
+    // Try to fetch src/App.tsx file content
+    const fileResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/src/App.tsx`, { 
+      headers,
+      method: 'GET'
+    });
+    
+    if (!fileResponse.ok) {
+      // If src/App.tsx doesn't exist, try other common React entry points
+      const alternativeFiles = ['src/App.js', 'src/app.tsx', 'src/app.js', 'App.tsx', 'App.js'];
+      
+      for (const altFile of alternativeFiles) {
+        const altResponse = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/${altFile}`, { 
+          headers,
+          method: 'GET'
+        });
+        
+        if (altResponse.ok) {
+          const altData = await altResponse.json();
+          if (altData.content) {
+            const decodedContent = atob(altData.content);
+            return decodedContent.toLowerCase().includes('bolt.new');
+          }
+        }
+      }
+      
+      return false; // No app file found
+    }
+    
+    const fileData = await fileResponse.json();
+    
+    if (!fileData.content) {
+      return false; // No content in file
+    }
+    
+    // Decode base64 content
+    const decodedContent = atob(fileData.content);
+    
+    // Check if "bolt.new" is mentioned in the file content
+    return decodedContent.toLowerCase().includes('bolt.new');
+    
+  } catch (error) {
+    console.error('Error checking bolt.new badge:', error);
+    return false; // Assume no badge if there's an error
+  }
 }
 
 async function fetchGitHubData(owner: string, repo: string, githubToken: string) {
@@ -402,6 +457,9 @@ Deno.serve(async (req) => {
     // Analyze commit patterns
     const patterns = analyzeCommitPatterns(commits);
 
+    // Check for bolt.new badge in repository files
+    const hasBoltNewBadge = await checkBoltNewBadge(owner, cleanRepo, githubToken);
+
     // Get AI analysis
     const aiAnalysis = await analyzeWithGemini(repoData, commits, patterns, geminiApiKey);
 
@@ -422,6 +480,7 @@ Deno.serve(async (req) => {
       `GitHub verified commits: ${patterns.verifiedCommits} (${patterns.githubVerifiedPercentage}%)`,
       `Rapid commit sequences: ${patterns.rapidCommits}`,
       `AI likelihood assessment: ${aiAnalysis.likelihood}%`,
+      `Bolt.new badge ${hasBoltNewBadge ? 'detected' : 'not found'} in source code`,
       `Repository created: ${new Date(repoData.created_at).toDateString()}`,
       eligibility.reason
     ];
@@ -435,6 +494,7 @@ Deno.serve(async (req) => {
       verificationPercentage: aiAnalysis.likelihood,
       isLikelyAIGenerated,
       isEligible: eligibility.isEligible,
+      hasBoltNewBadge,
       commitPatterns: patterns,
       confidence: aiAnalysis.confidence,
       details,

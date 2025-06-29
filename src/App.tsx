@@ -7,6 +7,7 @@ interface AnalysisResult {
   verificationPercentage: number;
   isLikelyAIGenerated: boolean;
   isEligible: boolean;
+  hasBoltNewBadge: boolean;
   commitPatterns: {
     rapidCommits: number;
     filePatterns: string[];
@@ -441,11 +442,11 @@ function App() {
                 </div>
                 <div className="flex items-center space-x-4">
                   <div className={`p-2 rounded-xl transition-colors duration-300 ${
-                    result.isEligible 
+                    result.hasBoltNewBadge 
                       ? 'bg-green-100 dark:bg-green-500/20' 
                       : 'bg-red-100 dark:bg-red-500/20'
                   }`}>
-                    {result.isEligible ? (
+                    {result.hasBoltNewBadge ? (
                       <CheckCircle className="h-5 w-5 text-green-600 dark:text-green-400 transition-colors duration-300" />
                     ) : (
                       <AlertTriangle className="h-5 w-5 text-red-600 dark:text-red-400 transition-colors duration-300" />
@@ -457,6 +458,8 @@ function App() {
               <p className="text-gray-600 dark:text-gray-300 text-sm font-light mt-4 transition-colors duration-300">
                 {!result.isEligible
                   ? "This repository is not eligible for the hackathon due to its creation date."
+                  : !result.hasBoltNewBadge
+                    ? "This repository does not contain the required bolt.new badge in its source code."
                   : result.aiAnalysis && result.aiAnalysis.likelihood > 70 
                     ? "This project appears to meet the hackathon requirement of being primarily built with bolt.new."
                     : "This project may not fully meet the requirement of being primarily built with bolt.new. Manual review recommended."
