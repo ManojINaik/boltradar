@@ -391,18 +391,18 @@ Return ONLY the JSON object, no markdown formatting or additional text.`;
 
 function checkHackathonEligibility(repoData: GitHubRepo) {
   const createdDate = new Date(repoData.created_at);
-  const hackathonStartDate = new Date('2025-06-01T00:00:00.000Z'); // June 1, 2025
+  const hackathonStartDate = new Date('2025-05-31T00:00:00.000Z'); // May 31, 2025
   
   if (createdDate < hackathonStartDate) {
     return {
       isEligible: false,
-      reason: `Repository created on ${createdDate.toDateString()}, before hackathon start date (June 1, 2025)`
+      reason: `Repository created on ${createdDate.toDateString()}, before hackathon start date (May 31, 2025)`
     };
   }
   
   return {
     isEligible: true,
-    reason: `Repository created on ${createdDate.toDateString()}, after hackathon start date (June 1, 2025)`
+    reason: `Repository created on ${createdDate.toDateString()}, from/after hackathon start date (May 31, 2025)`
   };
 }
 
